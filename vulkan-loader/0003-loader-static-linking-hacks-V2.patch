@@ -1,0 +1,59 @@
+From eba32666024f44bf694660c0469691048c561fcc Mon Sep 17 00:00:00 2001
+From: LimeOrangePie <ji5489@gmail.com>
+Date: Tue, 6 Jun 2023 04:30:30 +0900
+Subject: [PATCH] loader: static linking hacks V2
+
+Signed-off-by: LimeOrangePie <ji5489@gmail.com>
+---
+ loader/CMakeLists.txt | 15 ++++++++++++++-
+ loader/vulkan.pc.in   |  2 +-
+ 2 files changed, 15 insertions(+), 2 deletions(-)
+
+diff --git a/loader/CMakeLists.txt b/loader/CMakeLists.txt
+index 53bbd55ef..8bc8a2d5a 100644
+--- a/loader/CMakeLists.txt
++++ b/loader/CMakeLists.txt
+@@ -404,7 +404,9 @@ endif()
+ if(WIN32)
+     list(APPEND PLATFORM_LIBS shlwapi)
+     list(APPEND PLATFORM_LIBS cfgmgr32)
+-    list(APPEND PLATFORM_LIBS ws2_32)
++    list(APPEND PLATFORM_PUBLIC_LIBS shlwapi)
++    list(APPEND PLATFORM_PUBLIC_LIBS cfgmgr32)
++    list(APPEND PLATFORM_PUBLIC_LIBS ws2_32)
+ endif()
+ 
+ # Generate pkg-config file.
+@@ -416,6 +418,17 @@ if(PKG_CONFIG_FOUND)
+     endforeach()
+     list(REMOVE_DUPLICATES PRIVATE_LIBS)
+     set(PRIVATE_LIBS "Libs.private: ${PRIVATE_LIBS}")
++    string(REPLACE ";" " " PRIVATE_LIBS "${PRIVATE_LIBS}")
++
++    set(PUBLIC_LIBS "")
++    foreach(LIB ${PLATFORM_PUBLIC_LIBS})
++        list(APPEND PUBLIC_LIBS "-l${LIB}")
++    endforeach()
++    list(REMOVE_DUPLICATES PUBLIC_LIBS)
++    set(PLATFORM_PUBLIC_LIBS "")
++    set(PLATFORM_PUBLIC_LIBS "${PUBLIC_LIBS}")
++    string(REPLACE ";" " " PLATFORM_PUBLIC_LIBS "${PLATFORM_PUBLIC_LIBS}")
++
+     if(WIN32)
+         if(MINGW)
+             set(VULKAN_LIB_SUFFIX "-1.dll")
+diff --git a/loader/vulkan.pc.in b/loader/vulkan.pc.in
+index 80974e8a1..730bb7c87 100644
+--- a/loader/vulkan.pc.in
++++ b/loader/vulkan.pc.in
+@@ -6,6 +6,6 @@ includedir=${prefix}/@CMAKE_INSTALL_REL_INCLUDEDIR_PC@
+ Name: @VULKAN_LOADER_PKG_CONFIG_NAME@
+ Description: Vulkan Loader
+ Version: @VULKAN_LOADER_VERSION@
+-Libs: -L${libdir} -lvulkan@VULKAN_LIB_SUFFIX@
++Libs: -L${libdir} -lvulkan @PLATFORM_PUBLIC_LIBS@
+ @PRIVATE_LIBS@
+ Cflags: -I${includedir}
+-- 
+2.37.3.windows.1
+
